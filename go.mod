@@ -1,4 +1,4 @@
-module github.com/boba-keyost/openapi-go
+module openapi-go
 
 go 1.24
 
