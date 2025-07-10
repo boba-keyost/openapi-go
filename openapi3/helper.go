@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/swaggest/openapi-go"
+	"github.com/boba-keyost/openapi-go"
 )
 
 // ToParameterOrRef exposes Parameter in general form.
@@ -107,18 +107,22 @@ func (s *Spec) AddOperation(method, path string, operation Operation) error {
 
 	// Add "No Content" response if there are no responses configured.
 	if len(operation.Responses.MapOfResponseOrRefValues) == 0 && operation.Responses.Default == nil {
-		operation.Responses.WithMapOfResponseOrRefValuesItem(strconv.Itoa(http.StatusNoContent), ResponseOrRef{
-			Response: &Response{
-				Description: http.StatusText(http.StatusNoContent),
+		operation.Responses.WithMapOfResponseOrRefValuesItem(
+			strconv.Itoa(http.StatusNoContent), ResponseOrRef{
+				Response: &Response{
+					Description: http.StatusText(http.StatusNoContent),
+				},
 			},
-		})
+		)
 	}
 
-	return s.SetupOperation(method, path, func(op *Operation) error {
-		*op = operation
+	return s.SetupOperation(
+		method, path, func(op *Operation) error {
+			*op = operation
 
-		return nil
-	})
+			return nil
+		},
+	)
 }
 
 // UnknownParamIsForbidden indicates forbidden unknown parameters.

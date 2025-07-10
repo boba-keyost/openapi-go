@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/swaggest/assertjson"
 	jsonschema "github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/openapi31"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/openapi31"
 )
 
 func TestReflector_WalkRequestJSONSchemas(t *testing.T) {
@@ -52,20 +52,24 @@ func TestReflector_WalkRequestJSONSchemas(t *testing.T) {
 	schemas := map[string]*jsonschema.SchemaOrBool{}
 	doneCalled := 0
 
-	require.NoError(t, r.WalkRequestJSONSchemas(http.MethodPost, cu,
-		func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
-			schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
-				strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
+	require.NoError(
+		t, r.WalkRequestJSONSchemas(
+			http.MethodPost, cu,
+			func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
+				schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
+					strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
 
-			return nil
-		},
-		func(_ openapi.OperationContext) {
-			doneCalled++
-		},
-	))
+				return nil
+			},
+			func(_ openapi.OperationContext) {
+				doneCalled++
+			},
+		),
+	)
 
 	assert.Equal(t, 1, doneCalled)
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "cookie-cookie1-false-false":{"minimum":3,"type":"integer"},
 	  "cookie-cookie2-false-false":{"minLength":2,"type":"string"},
 	  "cookie-cookie3-false-true":{"description":"Trivial schema.","type":"boolean"},
@@ -84,9 +88,11 @@ func TestReflector_WalkRequestJSONSchemas(t *testing.T) {
 	  "query-query1-false-false":{"minimum":3,"type":"integer"},
 	  "query-query2-false-false":{"minLength":2,"type":"string"},
 	  "query-query3-false-true":{"description":"Trivial schema.","type":"boolean"}
-	}`, schemas)
+	}`, schemas,
+	)
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "components":{
 		"schemas":{
@@ -100,7 +106,8 @@ func TestReflector_WalkRequestJSONSchemas(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.Spec)
+	}`, r.Spec,
+	)
 }
 
 func TestReflector_WalkRequestJSONSchemas_jsonBody(t *testing.T) {
@@ -142,20 +149,24 @@ func TestReflector_WalkRequestJSONSchemas_jsonBody(t *testing.T) {
 	schemas := map[string]*jsonschema.SchemaOrBool{}
 	doneCalled := 0
 
-	require.NoError(t, r.WalkRequestJSONSchemas(http.MethodPost, cu,
-		func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
-			schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
-				strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
+	require.NoError(
+		t, r.WalkRequestJSONSchemas(
+			http.MethodPost, cu,
+			func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
+				schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
+					strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
 
-			return nil
-		},
-		func(_ openapi.OperationContext) {
-			doneCalled++
-		},
-	))
+				return nil
+			},
+			func(_ openapi.OperationContext) {
+				doneCalled++
+			},
+		),
+	)
 
 	assert.Equal(t, 1, doneCalled)
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "body-body-false-false":{
 		"properties":{
 		  "bar":{"items":{"type":"string"},"minItems":15,"type":["array","null"]},
@@ -175,9 +186,11 @@ func TestReflector_WalkRequestJSONSchemas_jsonBody(t *testing.T) {
 	  "query-query1-false-false":{"minimum":3,"type":"integer"},
 	  "query-query2-false-false":{"minLength":2,"type":"string"},
 	  "query-query3-false-true":{"description":"Trivial schema.","type":"boolean"}
-	}`, schemas)
+	}`, schemas,
+	)
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "components":{
 		"schemas":{
@@ -190,7 +203,8 @@ func TestReflector_WalkRequestJSONSchemas_jsonBody(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.Spec)
+	}`, r.Spec,
+	)
 }
 
 func TestReflector_WalkResponseJSONSchemas(t *testing.T) {
@@ -224,20 +238,24 @@ func TestReflector_WalkResponseJSONSchemas(t *testing.T) {
 	schemas := map[string]*jsonschema.SchemaOrBool{}
 	doneCalled := 0
 
-	require.NoError(t, r.WalkResponseJSONSchemas(cu,
-		func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
-			schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
-				strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
+	require.NoError(
+		t, r.WalkResponseJSONSchemas(
+			cu,
+			func(in openapi.In, paramName string, schema *jsonschema.SchemaOrBool, required bool) error {
+				schemas[string(in)+"-"+paramName+"-"+strconv.FormatBool(required)+"-"+
+					strconv.FormatBool(schema.IsTrivial(r.ResolveJSONSchemaRef))] = schema
 
-			return nil
-		},
-		func(_ openapi.OperationContext) {
-			doneCalled++
-		},
-	))
+				return nil
+			},
+			func(_ openapi.OperationContext) {
+				doneCalled++
+			},
+		),
+	)
 
 	assert.Equal(t, 1, doneCalled)
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "body-body-false-false":{
 		"properties":{
 		  "bar":{"items":{"type":"string"},"minItems":15,"type":["array","null"]},
@@ -251,9 +269,11 @@ func TestReflector_WalkResponseJSONSchemas(t *testing.T) {
 	  "header-Header4-false-false":{"minimum":3,"type":"integer"},
 	  "header-Header5-false-false":{"minLength":2,"type":"string"},
 	  "header-Header6-false-true":{"description":"Trivial schema.","type":"boolean"}
-	}`, schemas)
+	}`, schemas,
+	)
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "components":{
 		"schemas":{
@@ -266,5 +286,6 @@ func TestReflector_WalkResponseJSONSchemas(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.Spec)
+	}`, r.Spec,
+	)
 }

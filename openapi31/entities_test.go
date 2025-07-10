@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/swaggest/openapi-go/openapi31"
+	"github.com/boba-keyost/openapi-go/openapi31"
 )
 
 func TestSpec_UnmarshalYAML(t *testing.T) {

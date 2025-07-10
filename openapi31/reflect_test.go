@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/swaggest/assertjson"
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/openapi31"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/openapi31"
 )
 
 type WeirdResp interface {
@@ -133,7 +133,8 @@ func TestReflector_AddOperation_uploadInterface(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/somewhere":{
@@ -158,7 +159,8 @@ func TestReflector_AddOperation_uploadInterface(t *testing.T) {
 		  "MultipartFile":{"format":"binary","type":"string","contentMediaType": "application/octet-stream"}
 		}
 	  }
-	}`, reflector.Spec)
+	}`, reflector.Spec,
+	)
 }
 
 func TestReflector_AddOperation_request(t *testing.T) {
@@ -172,10 +174,12 @@ func TestReflector_AddOperation_request(t *testing.T) {
 	oc, err := reflector.NewOperationContext(http.MethodGet, "/somewhere/{in_path}")
 	require.NoError(t, err)
 	oc.AddReqStructure(new(GetReq))
-	oc.AddReqStructure(nil, func(cu *openapi.ContentUnit) {
-		cu.ContentType = "text/csv"
-		cu.Description = "Request body in CSV format."
-	})
+	oc.AddReqStructure(
+		nil, func(cu *openapi.ContentUnit) {
+			cu.ContentType = "text/csv"
+			cu.Description = "Request body in CSV format."
+		},
+	)
 
 	require.NoError(t, reflector.AddOperation(oc))
 
@@ -203,16 +207,22 @@ func TestReflector_AddOperation_JSON_response(t *testing.T) {
 	require.NoError(t, err)
 
 	oc.AddReqStructure(new(Req))
-	oc.AddRespStructure(new(WeirdResp), func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusOK
-	})
-	oc.AddRespStructure(new([]WeirdResp), func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusConflict
-	})
-	oc.AddRespStructure("", func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusConflict
-		cu.ContentType = "text/html"
-	})
+	oc.AddRespStructure(
+		new(WeirdResp), func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusOK
+		},
+	)
+	oc.AddRespStructure(
+		new([]WeirdResp), func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusConflict
+		},
+	)
+	oc.AddRespStructure(
+		"", func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusConflict
+			cu.ContentType = "text/html"
+		},
+	)
 
 	pathItem := openapi31.PathItem{}
 	pathItem.
@@ -222,14 +232,18 @@ func TestReflector_AddOperation_JSON_response(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	require.NoError(t, s.SetupOperation(http.MethodPost, "/somewhere/{in_path}", func(op *openapi31.Operation) error {
-		js := openapi31.ToJSONSchema(op.RequestBody.RequestBody.Content["multipart/form-data"].Schema, s)
-		expected, err := os.ReadFile("testdata/req_schema.json")
-		require.NoError(t, err)
-		assertjson.EqualMarshal(t, expected, js)
+	require.NoError(
+		t, s.SetupOperation(
+			http.MethodPost, "/somewhere/{in_path}", func(op *openapi31.Operation) error {
+				js := openapi31.ToJSONSchema(op.RequestBody.RequestBody.Content["multipart/form-data"].Schema, s)
+				expected, err := os.ReadFile("testdata/req_schema.json")
+				require.NoError(t, err)
+				assertjson.EqualMarshal(t, expected, js)
 
-		return nil
-	}))
+				return nil
+			},
+		),
+	)
 
 	oc, err = reflector.NewOperationContext(http.MethodGet, "/somewhere/{in_path}")
 	require.NoError(t, err)
@@ -239,28 +253,38 @@ func TestReflector_AddOperation_JSON_response(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	require.NoError(t, s.SetupOperation(http.MethodGet, "/somewhere/{in_path}", func(op *openapi31.Operation) error {
-		js := openapi31.ToJSONSchema(op.Responses.MapOfResponseOrReferenceValues[strconv.Itoa(http.StatusOK)].Response.Content["application/json"].
-			Schema, s)
-		jsb, err := assertjson.MarshalIndentCompact(js, "", " ", 120)
-		require.NoError(t, err)
+	require.NoError(
+		t, s.SetupOperation(
+			http.MethodGet, "/somewhere/{in_path}", func(op *openapi31.Operation) error {
+				js := openapi31.ToJSONSchema(
+					op.Responses.MapOfResponseOrReferenceValues[strconv.Itoa(http.StatusOK)].Response.Content["application/json"].
+						Schema, s,
+				)
+				jsb, err := assertjson.MarshalIndentCompact(js, "", " ", 120)
+				require.NoError(t, err)
 
-		require.NoError(t, os.WriteFile("testdata/resp_schema_last_run.json", jsb, 0o600))
+				require.NoError(t, os.WriteFile("testdata/resp_schema_last_run.json", jsb, 0o600))
 
-		expected, err := os.ReadFile("testdata/resp_schema.json")
-		require.NoError(t, err)
-		assertjson.EqualMarshal(t, expected, js)
+				expected, err := os.ReadFile("testdata/resp_schema.json")
+				require.NoError(t, err)
+				assertjson.EqualMarshal(t, expected, js)
 
-		js = openapi31.ToJSONSchema(op.Responses.MapOfResponseOrReferenceValues[strconv.Itoa(http.StatusOK)].Response.Headers["X-Header-Field"].Header.
-			Schema, s)
-		assertjson.EqMarshal(t, `{"type": "string", "description": "Sample header response."}`, js)
+				js = openapi31.ToJSONSchema(
+					op.Responses.MapOfResponseOrReferenceValues[strconv.Itoa(http.StatusOK)].Response.Headers["X-Header-Field"].Header.
+						Schema, s,
+				)
+				assertjson.EqMarshal(t, `{"type": "string", "description": "Sample header response."}`, js)
 
-		require.NoError(t, err)
-		assertjson.EqMarshal(t, `{"type": "integer", "description": "Query parameter."}`,
-			op.Parameters[0].Parameter.Schema)
+				require.NoError(t, err)
+				assertjson.EqMarshal(
+					t, `{"type": "integer", "description": "Query parameter."}`,
+					op.Parameters[0].Parameter.Schema,
+				)
 
-		return nil
-	}))
+				return nil
+			},
+		),
+	)
 
 	b, err := assertjson.MarshalIndentCompact(s, "", " ", 120)
 	require.NoError(t, err)
@@ -298,7 +322,8 @@ func TestReflector_AddOperation_pathParamAndBody(t *testing.T) {
 	s.Info.Title = apiName
 	s.Info.Version = apiVersion
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	  "paths":{
 		"/somewhere/{id}":{
@@ -320,7 +345,8 @@ func TestReflector_AddOperation_pathParamAndBody(t *testing.T) {
 		  "Openapi31TestPathParamAndBody":{"items":{"type":"string"},"type":["null","array"]}
 		}
 	  }
-	}`, s)
+	}`, s,
+	)
 }
 
 type WithReqBody PathParamAndBody
@@ -340,7 +366,8 @@ func TestReflector_AddOperation_RequestBodyEnforcer(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	  "paths":{
 		"/somewhere/{id}":{
@@ -362,7 +389,8 @@ func TestReflector_AddOperation_RequestBodyEnforcer(t *testing.T) {
 		  "Openapi31TestWithReqBody":{"items":{"type":"string"},"type":["null","array"]}
 		}
 	  }
-	}`, s)
+	}`, s,
+	)
 }
 
 func TestReflector_AddOperation_response(t *testing.T) {
@@ -374,21 +402,28 @@ func TestReflector_AddOperation_response(t *testing.T) {
 	s.Info.Title = apiName
 	s.Info.Version = apiVersion
 
-	oc.AddRespStructure(new(struct {
-		Val1 int
-		Val2 string
-	}), func(cu *openapi.ContentUnit) {
-		cu.ContentType = "text/csv; charset=utf-8"
-		cu.HTTPStatus = http.StatusNoContent
-		cu.SetFieldMapping(openapi.InHeader, map[string]string{
-			"Val1": "X-Value-1",
-			"Val2": "X-Value-2",
-		})
-	})
+	oc.AddRespStructure(
+		new(
+			struct {
+				Val1 int
+				Val2 string
+			},
+		), func(cu *openapi.ContentUnit) {
+			cu.ContentType = "text/csv; charset=utf-8"
+			cu.HTTPStatus = http.StatusNoContent
+			cu.SetFieldMapping(
+				openapi.InHeader, map[string]string{
+					"Val1": "X-Value-1",
+					"Val2": "X-Value-2",
+				},
+			)
+		},
+	)
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	 "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	 "paths":{
 	  "/somewhere":{
@@ -406,7 +441,8 @@ func TestReflector_AddOperation_response(t *testing.T) {
 	   }
 	  }
 	 }
-	}`, s)
+	}`, s,
+	)
 }
 
 func TestReflector_AddOperation_setup_request(t *testing.T) {
@@ -418,35 +454,50 @@ func TestReflector_AddOperation_setup_request(t *testing.T) {
 	s.Info.Title = apiName
 	s.Info.Version = apiVersion
 
-	oc.AddReqStructure(new(struct {
-		Val1 int
-		Val2 string
-		Val3 float64
-		Val4 bool
-		Val5 string
-		Val6 multipart.File
-	}), func(cu *openapi.ContentUnit) {
-		cu.SetFieldMapping(openapi.InHeader, map[string]string{
-			"Val1": "X-Value-1",
-		})
-		cu.SetFieldMapping(openapi.InQuery, map[string]string{
-			"Val2": "value_2",
-		})
-		cu.SetFieldMapping(openapi.InFormData, map[string]string{
-			"Val3": "value3",
-			"Val6": "upload6",
-		})
-		cu.SetFieldMapping(openapi.InPath, map[string]string{
-			"Val4": "value-4",
-		})
-		cu.SetFieldMapping(openapi.InCookie, map[string]string{
-			"Val5": "value_5",
-		})
-	})
+	oc.AddReqStructure(
+		new(
+			struct {
+				Val1 int
+				Val2 string
+				Val3 float64
+				Val4 bool
+				Val5 string
+				Val6 multipart.File
+			},
+		), func(cu *openapi.ContentUnit) {
+			cu.SetFieldMapping(
+				openapi.InHeader, map[string]string{
+					"Val1": "X-Value-1",
+				},
+			)
+			cu.SetFieldMapping(
+				openapi.InQuery, map[string]string{
+					"Val2": "value_2",
+				},
+			)
+			cu.SetFieldMapping(
+				openapi.InFormData, map[string]string{
+					"Val3": "value3",
+					"Val6": "upload6",
+				},
+			)
+			cu.SetFieldMapping(
+				openapi.InPath, map[string]string{
+					"Val4": "value-4",
+				},
+			)
+			cu.SetFieldMapping(
+				openapi.InCookie, map[string]string{
+					"Val5": "value_5",
+				},
+			)
+		},
+	)
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	  "paths":{
 		"/somewhere/{value-4}":{
@@ -478,7 +529,8 @@ func TestReflector_AddOperation_setup_request(t *testing.T) {
 		}
 	  },
 	  "components":{"schemas":{"MultipartFile":{"format":"binary","type":"string", "contentMediaType": "application/octet-stream"}}}
-	}`, s)
+	}`, s,
+	)
 }
 
 func TestReflector_AddOperation_request_queryObject(t *testing.T) {
@@ -491,13 +543,18 @@ func TestReflector_AddOperation_request_queryObject(t *testing.T) {
 	s.Info.Title = apiName
 	s.Info.Version = apiVersion
 
-	oc.AddReqStructure(new(struct {
-		InQuery map[int]float64 `query:"in_query"`
-	}))
+	oc.AddReqStructure(
+		new(
+			struct {
+				InQuery map[int]float64 `query:"in_query"`
+			},
+		),
+	)
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	  "paths":{
 		"/somewhere":{
@@ -515,7 +572,8 @@ func TestReflector_AddOperation_request_queryObject(t *testing.T) {
 		  }
 		}
 	  }
-	}`, s)
+	}`, s,
+	)
 }
 
 type namedType struct {
@@ -536,7 +594,8 @@ func TestReflector_AddOperation_request_queryNamedObject(t *testing.T) {
 	oc.AddReqStructure(new(namedType))
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"SampleAPI","version":"1.2.3"},
 	  "paths":{
 		"/somewhere":{
@@ -557,7 +616,8 @@ func TestReflector_AddOperation_request_queryNamedObject(t *testing.T) {
 		  "Openapi31TestLabels":{"additionalProperties":{"type":"number"},"type":"object"}
 		}
 	  }
-	}`, s)
+	}`, s,
+	)
 
 	js, found := reflector.ResolveJSONSchemaRef("#/components/schemas/Openapi31TestLabels")
 	assert.True(t, found)
@@ -585,7 +645,8 @@ func TestReflector_AddOperation_request_jsonQuery(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/":{
@@ -638,7 +699,8 @@ func TestReflector_AddOperation_request_jsonQuery(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecEns())
+	}`, r.SpecEns(),
+	)
 }
 
 func TestReflector_AddOperation_request_forbidParams(t *testing.T) {
@@ -659,7 +721,8 @@ func TestReflector_AddOperation_request_forbidParams(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/{path}":{
@@ -678,7 +741,8 @@ func TestReflector_AddOperation_request_forbidParams(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecEns())
+	}`, r.SpecEns(),
+	)
 
 	o3, ok := oc.(openapi31.OperationExposer)
 	require.True(t, ok)
@@ -704,14 +768,20 @@ func TestReflector_AddOperation_request_noBody(t *testing.T) {
 
 		require.NoError(t, r.AddOperation(oc))
 
-		require.NoError(t, r.SpecEns().SetupOperation(method, "/{id}", func(op *openapi31.Operation) error {
-			assertjson.EqMarshal(t, `{
+		require.NoError(
+			t, r.SpecEns().SetupOperation(
+				method, "/{id}", func(op *openapi31.Operation) error {
+					assertjson.EqMarshal(
+						t, `{
 			  "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
 			  "responses":{"204":{"description":"No Content"}}
-			}`, op)
+			}`, op,
+					)
 
-			return nil
-		}))
+					return nil
+				},
+			),
+		)
 	}
 
 	for _, method := range []string{http.MethodPost, http.MethodPatch, http.MethodPut} {
@@ -722,8 +792,11 @@ func TestReflector_AddOperation_request_noBody(t *testing.T) {
 
 		require.NoError(t, r.AddOperation(oc))
 
-		require.NoError(t, r.SpecEns().SetupOperation(method, "/{id}", func(op *openapi31.Operation) error {
-			assertjson.EqMarshal(t, `{
+		require.NoError(
+			t, r.SpecEns().SetupOperation(
+				method, "/{id}", func(op *openapi31.Operation) error {
+					assertjson.EqMarshal(
+						t, `{
 			  "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
 			  "requestBody":{
 				"content":{
@@ -731,10 +804,13 @@ func TestReflector_AddOperation_request_noBody(t *testing.T) {
 				}
 			  },
 			  "responses":{"204":{"description":"No Content"}}
-			}`, op)
+			}`, op,
+					)
 
-			return nil
-		}))
+					return nil
+				},
+			),
+		)
 	}
 }
 
@@ -763,34 +839,39 @@ func TestReflector_AddOperation_OperationCtx(t *testing.T) {
 
 	var currentRC *jsonschema.ReflectContext
 
-	r.DefaultOptions = append(r.DefaultOptions,
+	r.DefaultOptions = append(
+		r.DefaultOptions,
 		func(rc *jsonschema.ReflectContext) {
 			currentRC = rc
 		},
-		jsonschema.InterceptSchema(func(_ jsonschema.InterceptSchemaParams) (stop bool, err error) {
-			if occ, ok := openapi.OperationCtx(currentRC); ok {
-				if occ.IsProcessingResponse() {
-					visited["resp:"+string(occ.ProcessingIn())] = true
-				} else {
-					visited["req:"+string(occ.ProcessingIn())] = true
+		jsonschema.InterceptSchema(
+			func(_ jsonschema.InterceptSchemaParams) (stop bool, err error) {
+				if occ, ok := openapi.OperationCtx(currentRC); ok {
+					if occ.IsProcessingResponse() {
+						visited["resp:"+string(occ.ProcessingIn())] = true
+					} else {
+						visited["req:"+string(occ.ProcessingIn())] = true
+					}
 				}
-			}
 
-			return false, nil
-		}),
+				return false, nil
+			},
+		),
 	)
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assert.Equal(t, map[string]bool{
-		"req:body":    true,
-		"req:cookie":  true,
-		"req:header":  true,
-		"req:path":    true,
-		"req:query":   true,
-		"resp:body":   true,
-		"resp:header": true,
-	}, visited)
+	assert.Equal(
+		t, map[string]bool{
+			"req:body":    true,
+			"req:cookie":  true,
+			"req:header":  true,
+			"req:path":    true,
+			"req:query":   true,
+			"resp:body":   true,
+			"resp:header": true,
+		}, visited,
+	)
 }
 
 func TestReflector_AddOperation_request_formData_with_json(t *testing.T) {
@@ -806,7 +887,8 @@ func TestReflector_AddOperation_request_formData_with_json(t *testing.T) {
 	oc.AddReqStructure(new(req))
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -825,7 +907,8 @@ func TestReflector_AddOperation_request_formData_with_json(t *testing.T) {
 		  "FormDataOpenapi31TestReq":{"type":"object","properties":{"foo":{"type":"integer"}}}
 		}
 	  }
-	}`, r.SpecEns())
+	}`, r.SpecEns(),
+	)
 }
 
 func TestReflector_AddOperation_request_form(t *testing.T) {
@@ -845,7 +928,8 @@ func TestReflector_AddOperation_request_form(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -875,7 +959,8 @@ func TestReflector_AddOperation_request_form(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecEns())
+	}`, r.SpecEns(),
+	)
 }
 
 func TestReflector_AddOperation_request_form_only(t *testing.T) {
@@ -893,7 +978,8 @@ func TestReflector_AddOperation_request_form_only(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -919,7 +1005,8 @@ func TestReflector_AddOperation_request_form_only(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecEns())
+	}`, r.SpecEns(),
+	)
 }
 
 func TestReflector_AddOperation_request_queryObject_deepObject(t *testing.T) {
@@ -974,7 +1061,8 @@ func TestReflector_AddOperation_request_queryObject_deepObject(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/things/{id}":{
@@ -1027,7 +1115,8 @@ func TestReflector_AddOperation_request_queryObject_deepObject(t *testing.T) {
 		  }
 		}
 	  }
-	}`, reflector.Spec)
+	}`, reflector.Spec,
+	)
 }
 
 type textCSV struct{}
@@ -1048,7 +1137,8 @@ func TestReflector_AddOperation_contentUnitPreparer(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -1066,7 +1156,8 @@ func TestReflector_AddOperation_contentUnitPreparer(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestReflector_AddOperation_defName(t *testing.T) {
@@ -1105,7 +1196,8 @@ func TestReflector_AddOperation_defName(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -1150,12 +1242,16 @@ func TestReflector_AddOperation_defName(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.Spec)
+	}`, r.Spec,
+	)
 }
 
 func Test_Repro2(t *testing.T) {
 	oarefl := openapi31.NewReflector()
-	oarefl.JSONSchemaReflector().DefaultOptions = append(oarefl.JSONSchemaReflector().DefaultOptions, jsonschema.ProcessWithoutTags)
+	oarefl.JSONSchemaReflector().DefaultOptions = append(
+		oarefl.JSONSchemaReflector().DefaultOptions,
+		jsonschema.ProcessWithoutTags,
+	)
 
 	{
 		var dummyIn struct {
@@ -1179,7 +1275,8 @@ func Test_Repro2(t *testing.T) {
 		}
 	}
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/postDelete":{
@@ -1204,7 +1301,8 @@ func Test_Repro2(t *testing.T) {
 		  }
 		}
 	  }
-	}`, oarefl.SpecSchema())
+	}`, oarefl.SpecSchema(),
+	)
 }
 
 type rawExposer func() ([]byte, error)
@@ -1218,17 +1316,26 @@ func TestReflector_AddOperation_rawSchema(t *testing.T) {
 	oc, err := r.NewOperationContext(http.MethodPost, "/foo")
 	require.NoError(t, err)
 
-	oc.AddRespStructure(rawExposer(func() ([]byte, error) {
-		return []byte(`{"type":"object","properties":{"foo":{"type":"integer"}}}`), nil
-	}), openapi.WithHTTPStatus(http.StatusAccepted))
+	oc.AddRespStructure(
+		rawExposer(
+			func() ([]byte, error) {
+				return []byte(`{"type":"object","properties":{"foo":{"type":"integer"}}}`), nil
+			},
+		), openapi.WithHTTPStatus(http.StatusAccepted),
+	)
 
-	oc.AddRespStructure(rawExposer(func() ([]byte, error) {
-		return []byte(`{"type":"object","properties":{"bar":{"type":"integer"}}}`), nil
-	}), openapi.WithHTTPStatus(http.StatusConflict))
+	oc.AddRespStructure(
+		rawExposer(
+			func() ([]byte, error) {
+				return []byte(`{"type":"object","properties":{"bar":{"type":"integer"}}}`), nil
+			},
+		), openapi.WithHTTPStatus(http.StatusConflict),
+	)
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo":{
@@ -1254,7 +1361,8 @@ func TestReflector_AddOperation_rawSchema(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestReflector_AddOperation_jsonschemaStruct(t *testing.T) {
@@ -1270,11 +1378,13 @@ func TestReflector_AddOperation_jsonschemaStruct(t *testing.T) {
 
 	req := Req{}
 	req.DefName = "FooStruct"
-	req.Fields = append(req.Fields, jsonschema.Field{
-		Name:  "Foo",
-		Value: "abc",
-		Tag:   `json:"foo" minLength:"3"`,
-	})
+	req.Fields = append(
+		req.Fields, jsonschema.Field{
+			Name:  "Foo",
+			Value: "abc",
+			Tag:   `json:"foo" minLength:"3"`,
+		},
+	)
 
 	type Resp struct {
 		ID int `json:"id"`
@@ -1284,24 +1394,29 @@ func TestReflector_AddOperation_jsonschemaStruct(t *testing.T) {
 
 	resp := Resp{}
 	resp.DefName = "BarStruct"
-	resp.Fields = append(resp.Fields, jsonschema.Field{
-		Name:  "Bar",
-		Value: "cba",
-		Tag:   `json:"bar" maxLength:"3"`,
-	})
+	resp.Fields = append(
+		resp.Fields, jsonschema.Field{
+			Name:  "Bar",
+			Value: "cba",
+			Tag:   `json:"bar" maxLength:"3"`,
+		},
+	)
 	resp.Nested.DefName = "BazStruct"
-	resp.Nested.Fields = append(resp.Nested.Fields, jsonschema.Field{
-		Name:  "Baz",
-		Value: "def",
-		Tag:   `json:"baz" maxLength:"5"`,
-	})
+	resp.Nested.Fields = append(
+		resp.Nested.Fields, jsonschema.Field{
+			Name:  "Baz",
+			Value: "def",
+			Tag:   `json:"baz" maxLength:"5"`,
+		},
+	)
 
 	oc.AddReqStructure(req)
 	oc.AddRespStructure(resp)
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/foo/{id}":{
@@ -1340,7 +1455,8 @@ func TestReflector_AddOperation_jsonschemaStruct(t *testing.T) {
 		  "FooStruct":{"properties":{"foo":{"minLength":3,"type":"string"}},"type":"object"}
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestNewReflector_examples(t *testing.T) {
@@ -1361,9 +1477,11 @@ func TestNewReflector_examples(t *testing.T) {
 
 	st := http.StatusCreated
 
-	op.AddRespStructure(jsonschema.OneOf(O1{}, O2{}), func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = st
-	})
+	op.AddRespStructure(
+		jsonschema.OneOf(O1{}, O2{}), func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = st
+		},
+	)
 
 	if o3, ok := op.(openapi31.OperationExposer); ok {
 		c := openapi31.MediaType{}
@@ -1378,13 +1496,16 @@ func TestNewReflector_examples(t *testing.T) {
 		resp := openapi31.Response{}
 		resp.WithContentItem("application/json", c)
 
-		o3.Operation().ResponsesEns().WithMapOfResponseOrReferenceValuesItem(strconv.Itoa(st), openapi31.ResponseOrReference{
-			Response: &resp,
-		})
+		o3.Operation().ResponsesEns().WithMapOfResponseOrReferenceValuesItem(
+			strconv.Itoa(st), openapi31.ResponseOrReference{
+				Response: &resp,
+			},
+		)
 	}
 
 	require.NoError(t, r.AddOperation(op))
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/":{
@@ -1429,7 +1550,8 @@ func TestNewReflector_examples(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestWithCustomize(t *testing.T) {
@@ -1438,32 +1560,41 @@ func TestWithCustomize(t *testing.T) {
 	op, err := r.NewOperationContext(http.MethodPost, "/{document_id}/{client}")
 	require.NoError(t, err)
 
-	op.AddReqStructure(new(struct {
-		DocumentID string `path:"document_id"`
-		Client     string `path:"client"`
-		Foo        int    `json:"foo"`
-	}), openapi.WithCustomize(func(cor openapi.ContentOrReference) {
-		_, ok := cor.(*openapi31.RequestBodyOrReference)
-		assert.True(t, ok)
+	op.AddReqStructure(
+		new(
+			struct {
+				DocumentID string `path:"document_id"`
+				Client     string `path:"client"`
+				Foo        int    `json:"foo"`
+			},
+		), openapi.WithCustomize(
+			func(cor openapi.ContentOrReference) {
+				_, ok := cor.(*openapi31.RequestBodyOrReference)
+				assert.True(t, ok)
 
-		cor.SetReference("../somewhere/components/requests/foo.yaml")
-	}))
+				cor.SetReference("../somewhere/components/requests/foo.yaml")
+			},
+		),
+	)
 
 	op.AddRespStructure(
 		nil, openapi.WithReference("../somewhere/components/responses/204.yaml"), openapi.WithHTTPStatus(204),
 	)
 	op.AddRespStructure(
-		nil, openapi.WithCustomize(func(cor openapi.ContentOrReference) {
-			_, ok := cor.(*openapi31.ResponseOrReference)
-			assert.True(t, ok)
+		nil, openapi.WithCustomize(
+			func(cor openapi.ContentOrReference) {
+				_, ok := cor.(*openapi31.ResponseOrReference)
+				assert.True(t, ok)
 
-			cor.SetReference("../somewhere/components/responses/200.yaml")
-		}), openapi.WithHTTPStatus(200),
+				cor.SetReference("../somewhere/components/responses/200.yaml")
+			},
+		), openapi.WithHTTPStatus(200),
 	)
 
 	require.NoError(t, r.AddOperation(op))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/{document_id}/{client}":{
@@ -1486,7 +1617,8 @@ func TestWithCustomize(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestRawBody(t *testing.T) {
@@ -1510,7 +1642,8 @@ func TestRawBody(t *testing.T) {
 
 	require.NoError(t, r.AddOperation(oc))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/":{
@@ -1533,7 +1666,8 @@ func TestRawBody(t *testing.T) {
 		  }
 		}
 	  }
-	}`, r.SpecSchema())
+	}`, r.SpecSchema(),
+	)
 }
 
 func TestSelfReference(t *testing.T) {
@@ -1556,7 +1690,8 @@ func TestSelfReference(t *testing.T) {
 
 	require.NoError(t, reflector.AddOperation(putOp))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.1.0","info":{"title":"","version":""},
 	  "paths":{
 		"/things/":{
@@ -1592,5 +1727,6 @@ func TestSelfReference(t *testing.T) {
 		  }
 		}
 	  }
-	}`, reflector.SpecSchema())
+	}`, reflector.SpecSchema(),
+	)
 }

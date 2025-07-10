@@ -5,20 +5,26 @@ import (
 	"net/http"
 
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/internal"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/internal"
 )
 
 // WalkResponseJSONSchemas provides JSON schemas for response structure.
-func (r *Reflector) WalkResponseJSONSchemas(cu openapi.ContentUnit, cb openapi.JSONSchemaCallback, done func(oc openapi.OperationContext)) error {
+func (r *Reflector) WalkResponseJSONSchemas(
+	cu openapi.ContentUnit,
+	cb openapi.JSONSchemaCallback,
+	done func(oc openapi.OperationContext),
+) error {
 	oc := operationContext{
 		OperationContext: internal.NewOperationContext(http.MethodGet, "/"),
 		op:               &Operation{},
 	}
 
-	oc.AddRespStructure(nil, func(c *openapi.ContentUnit) {
-		*c = cu
-	})
+	oc.AddRespStructure(
+		nil, func(c *openapi.ContentUnit) {
+			*c = cu
+		},
+	)
 
 	defer func() {
 		if done != nil {
@@ -93,9 +99,11 @@ func (r *Reflector) WalkRequestJSONSchemas(
 		op:               &Operation{},
 	}
 
-	oc.AddReqStructure(nil, func(c *openapi.ContentUnit) {
-		*c = cu
-	})
+	oc.AddReqStructure(
+		nil, func(c *openapi.ContentUnit) {
+			*c = cu
+		},
+	)
 
 	defer func() {
 		if done != nil {

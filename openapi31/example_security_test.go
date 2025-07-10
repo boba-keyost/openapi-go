@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/openapi31"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/openapi31"
 )
 
 func ExampleSpec_SetHTTPBasicSecurity() {
@@ -17,19 +17,23 @@ func ExampleSpec_SetHTTPBasicSecurity() {
 	reflector.SpecEns().SetHTTPBasicSecurity(securityName, "Admin Access")
 
 	oc, _ := reflector.NewOperationContext(http.MethodGet, "/secure")
-	oc.AddRespStructure(struct {
-		Secret string `json:"secret"`
-	}{})
+	oc.AddRespStructure(
+		struct {
+			Secret string `json:"secret"`
+		}{},
+	)
 
 	// Add security requirement to operation.
 	oc.AddSecurity(securityName)
 
 	// Describe unauthorized response.
-	oc.AddRespStructure(struct {
-		Error string `json:"error"`
-	}{}, func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusUnauthorized
-	})
+	oc.AddRespStructure(
+		struct {
+			Error string `json:"error"`
+		}{}, func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusUnauthorized
+		},
+	)
 
 	// Add operation to schema.
 	_ = reflector.AddOperation(oc)
@@ -83,23 +87,29 @@ func ExampleSpec_SetAPIKeySecurity() {
 	securityName := "api_key"
 
 	// Declare security scheme.
-	reflector.SpecEns().SetAPIKeySecurity(securityName, "Authorization",
-		openapi.InHeader, "API Access")
+	reflector.SpecEns().SetAPIKeySecurity(
+		securityName, "Authorization",
+		openapi.InHeader, "API Access",
+	)
 
 	oc, _ := reflector.NewOperationContext(http.MethodGet, "/secure")
-	oc.AddRespStructure(struct {
-		Secret string `json:"secret"`
-	}{})
+	oc.AddRespStructure(
+		struct {
+			Secret string `json:"secret"`
+		}{},
+	)
 
 	// Add security requirement to operation.
 	oc.AddSecurity(securityName)
 
 	// Describe unauthorized response.
-	oc.AddRespStructure(struct {
-		Error string `json:"error"`
-	}{}, func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusUnauthorized
-	})
+	oc.AddRespStructure(
+		struct {
+			Error string `json:"error"`
+		}{}, func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusUnauthorized
+		},
+	)
 
 	// Add operation to schema.
 	_ = reflector.AddOperation(oc)
@@ -157,19 +167,23 @@ func ExampleSpec_SetHTTPBearerTokenSecurity() {
 	reflector.SpecEns().SetHTTPBearerTokenSecurity(securityName, "JWT", "Admin Access")
 
 	oc, _ := reflector.NewOperationContext(http.MethodGet, "/secure")
-	oc.AddRespStructure(struct {
-		Secret string `json:"secret"`
-	}{})
+	oc.AddRespStructure(
+		struct {
+			Secret string `json:"secret"`
+		}{},
+	)
 
 	// Add security requirement to operation.
 	oc.AddSecurity(securityName)
 
 	// Describe unauthorized response.
-	oc.AddRespStructure(struct {
-		Error string `json:"error"`
-	}{}, func(cu *openapi.ContentUnit) {
-		cu.HTTPStatus = http.StatusUnauthorized
-	})
+	oc.AddRespStructure(
+		struct {
+			Error string `json:"error"`
+		}{}, func(cu *openapi.ContentUnit) {
+			cu.HTTPStatus = http.StatusUnauthorized
+		},
+	)
 
 	// Add operation to schema.
 	_ = reflector.AddOperation(oc)

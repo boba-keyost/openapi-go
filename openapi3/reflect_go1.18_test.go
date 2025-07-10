@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/swaggest/assertjson"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/openapi3"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/openapi3"
 )
 
 func Test_Foo(t *testing.T) {
@@ -47,7 +47,10 @@ func Test_Foo(t *testing.T) {
 	require.NoError(t, err)
 	putOC.AddReqStructure(new(req[time.Time]))
 	putOC.AddRespStructure(new(resp[time.Time]), func(cu *openapi.ContentUnit) { cu.HTTPStatus = http.StatusOK })
-	putOC.AddRespStructure(new([]resp[time.Time]), func(cu *openapi.ContentUnit) { cu.HTTPStatus = http.StatusConflict })
+	putOC.AddRespStructure(
+		new([]resp[time.Time]),
+		func(cu *openapi.ContentUnit) { cu.HTTPStatus = http.StatusConflict },
+	)
 	require.NoError(t, reflector.AddOperation(putOC))
 
 	getOC, err := reflector.NewOperationContext(http.MethodGet, "/things/{id}")
@@ -56,7 +59,8 @@ func Test_Foo(t *testing.T) {
 	getOC.AddRespStructure(new(resp[time.Time]), func(cu *openapi.ContentUnit) { cu.HTTPStatus = http.StatusOK })
 	require.NoError(t, reflector.AddOperation(getOC))
 
-	assertjson.EqMarshal(t, `{
+	assertjson.EqMarshal(
+		t, `{
 	  "openapi":"3.0.3",
 	  "info":{"title":"Things API","description":"Put something here","version":"1.2.3"},
 	  "paths":{
@@ -162,5 +166,6 @@ func Test_Foo(t *testing.T) {
 		  }
 		}
 	  }
-	}`, reflector.Spec)
+	}`, reflector.Spec,
+	)
 }

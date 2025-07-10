@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/swaggest/openapi-go"
+	"github.com/boba-keyost/openapi-go"
 )
 
 func TestContentUnit_options(t *testing.T) {

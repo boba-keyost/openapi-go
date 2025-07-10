@@ -7,20 +7,24 @@ import (
 
 	"github.com/swaggest/assertjson"
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go/openapi3"
+	"github.com/boba-keyost/openapi-go/openapi3"
 )
 
 func ExampleReflector_options() {
 	r := openapi3.Reflector{}
 
 	// Reflector embeds jsonschema.Reflector and it is possible to configure optional behavior.
-	r.Reflector.DefaultOptions = append(r.Reflector.DefaultOptions,
-		jsonschema.InterceptNullability(func(params jsonschema.InterceptNullabilityParams) {
-			// Removing nullability from non-pointer slices (regardless of omitempty).
-			if params.Type.Kind() != reflect.Ptr && params.Schema.HasType(jsonschema.Null) && params.Schema.HasType(jsonschema.Array) {
-				*params.Schema.Type = jsonschema.Array.Type()
-			}
-		}))
+	r.Reflector.DefaultOptions = append(
+		r.Reflector.DefaultOptions,
+		jsonschema.InterceptNullability(
+			func(params jsonschema.InterceptNullabilityParams) {
+				// Removing nullability from non-pointer slices (regardless of omitempty).
+				if params.Type.Kind() != reflect.Ptr && params.Schema.HasType(jsonschema.Null) && params.Schema.HasType(jsonschema.Array) {
+					*params.Schema.Type = jsonschema.Array.Type()
+				}
+			},
+		),
+	)
 
 	type req struct {
 		Foo []int `json:"foo"`

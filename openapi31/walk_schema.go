@@ -3,12 +3,10 @@ package openapi31
 import (
 	"fmt"
 	"net/http"
-	openapi "openapi-go"
-	"strings"
 
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/internal"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/internal"
 )
 
 // WalkResponseJSONSchemas provides JSON schemas for response structure.

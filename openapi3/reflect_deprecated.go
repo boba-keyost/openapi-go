@@ -2,7 +2,7 @@ package openapi3
 
 import (
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
+	"github.com/boba-keyost/openapi-go"
 )
 
 // SetupRequest sets up operation parameters.
@@ -16,11 +16,13 @@ func (r *Reflector) SetupRequest(c OperationContext) error {
 //
 // Deprecated: instrument openapi.OperationContext and use AddOperation.
 func (r *Reflector) SetRequest(o *Operation, input interface{}, httpMethod string) error {
-	return r.SetupRequest(OperationContext{
-		Operation:  o,
-		Input:      input,
-		HTTPMethod: httpMethod,
-	})
+	return r.SetupRequest(
+		OperationContext{
+			Operation:  o,
+			Input:      input,
+			HTTPMethod: httpMethod,
+		},
+	)
 }
 
 // RequestBodyEnforcer enables request body for GET and HEAD methods.
@@ -46,22 +48,26 @@ type RequestJSONBodyEnforcer interface {
 //
 // Deprecated: use AddOperation with openapi.OperationContext AddRespStructure.
 func (r *Reflector) SetStringResponse(o *Operation, httpStatus int, contentType string) error {
-	return r.SetupResponse(OperationContext{
-		Operation:       o,
-		HTTPStatus:      httpStatus,
-		RespContentType: contentType,
-	})
+	return r.SetupResponse(
+		OperationContext{
+			Operation:       o,
+			HTTPStatus:      httpStatus,
+			RespContentType: contentType,
+		},
+	)
 }
 
 // SetJSONResponse sets up operation JSON response.
 //
 // Deprecated: use AddOperation with openapi.OperationContext AddRespStructure.
 func (r *Reflector) SetJSONResponse(o *Operation, output interface{}, httpStatus int) error {
-	return r.SetupResponse(OperationContext{
-		Operation:  o,
-		Output:     output,
-		HTTPStatus: httpStatus,
-	})
+	return r.SetupResponse(
+		OperationContext{
+			Operation:  o,
+			Output:     output,
+			HTTPStatus: httpStatus,
+		},
+	)
 }
 
 // SetupResponse sets up operation response.

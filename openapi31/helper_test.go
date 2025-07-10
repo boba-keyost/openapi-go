@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/swaggest/assertjson"
-	"github.com/swaggest/openapi-go/openapi31"
+	"github.com/boba-keyost/openapi-go/openapi31"
 )
 
 func TestSpec_SetOperation(t *testing.T) {
@@ -17,19 +17,27 @@ func TestSpec_SetOperation(t *testing.T) {
 		openapi31.Parameter{In: openapi31.ParameterInPath, Name: "foo"}.ToParameterOrRef(),
 	)
 
-	require.EqualError(t, s.AddOperation("bar", "/", op),
-		"unexpected http method: bar")
+	require.EqualError(
+		t, s.AddOperation("bar", "/", op),
+		"unexpected http method: bar",
+	)
 
-	require.EqualError(t, s.AddOperation(http.MethodGet, "/", op),
-		"missing path parameter placeholder in url: foo")
+	require.EqualError(
+		t, s.AddOperation(http.MethodGet, "/", op),
+		"missing path parameter placeholder in url: foo",
+	)
 
-	require.EqualError(t, s.AddOperation(http.MethodGet, "/{bar}", op),
-		"missing path parameter placeholder in url: foo, undefined path parameter: bar")
+	require.EqualError(
+		t, s.AddOperation(http.MethodGet, "/{bar}", op),
+		"missing path parameter placeholder in url: foo, undefined path parameter: bar",
+	)
 
 	require.NoError(t, s.AddOperation(http.MethodGet, "/{foo}", op))
 
-	require.EqualError(t, s.AddOperation(http.MethodGet, "/{foo}", op),
-		"operation already exists: get /{foo}")
+	require.EqualError(
+		t, s.AddOperation(http.MethodGet, "/{foo}", op),
+		"operation already exists: get /{foo}",
+	)
 
 	op.WithParameters(
 		openapi31.Parameter{In: openapi31.ParameterInPath, Name: "foo"}.ToParameterOrRef(),
@@ -38,15 +46,17 @@ func TestSpec_SetOperation(t *testing.T) {
 		openapi31.Parameter{In: openapi31.ParameterInQuery, Name: "bar"}.ToParameterOrRef(),
 	)
 
-	require.EqualError(t, s.AddOperation(http.MethodGet, "/another/{foo}", op),
-		"duplicate parameter in path: foo, duplicate parameter in query: bar")
+	require.EqualError(
+		t, s.AddOperation(http.MethodGet, "/another/{foo}", op),
+		"duplicate parameter in path: foo, duplicate parameter in query: bar",
+	)
 }
 
 func TestSpec_SetupOperation_pathRegex(t *testing.T) {
 	s := openapi31.Spec{}
 
 	for _, tc := range []struct {
-		path   string
+		path string
 		params []string
 	}{
 		{`/{month}-{day}-{year}`, []string{"month", "day", "year"}},
@@ -61,21 +71,29 @@ func TestSpec_SetupOperation_pathRegex(t *testing.T) {
 		{"/users/{userID:[^/]+}", []string{"userID"}},
 		{"/users/{userID:[^/]+}/books/{bookID:.+}", []string{"userID", "bookID"}},
 	} {
-		t.Run(tc.path, func(t *testing.T) {
-			require.NoError(t, s.SetupOperation(http.MethodGet, tc.path,
-				func(operation *openapi31.Operation) error {
-					var pp []openapi31.ParameterOrReference
+		t.Run(
+			tc.path, func(t *testing.T) {
+				require.NoError(
+					t, s.SetupOperation(
+						http.MethodGet, tc.path,
+						func(operation *openapi31.Operation) error {
+							var pp []openapi31.ParameterOrReference
 
-					for _, p := range tc.params {
-						pp = append(pp, openapi31.Parameter{In: openapi31.ParameterInPath, Name: p}.ToParameterOrRef())
-					}
+							for _, p := range tc.params {
+								pp = append(
+									pp,
+									openapi31.Parameter{In: openapi31.ParameterInPath, Name: p}.ToParameterOrRef(),
+								)
+							}
 
-					operation.WithParameters(pp...)
+							operation.WithParameters(pp...)
 
-					return nil
-				},
-			))
-		})
+							return nil
+						},
+					),
+				)
+			},
+		)
 	}
 }
 
@@ -90,7 +108,8 @@ func TestSpec_SetupOperation_uncleanPath(t *testing.T) {
 	require.NoError(t, s.SetupOperation(http.MethodGet, "/users/{userID:[^/]+}", f))
 	require.NoError(t, s.SetupOperation(http.MethodPost, "/users/{userID:[^/]+}", f))
 
-	assertjson.EqualMarshal(t, []byte(`{
+	assertjson.EqualMarshal(
+		t, []byte(`{
 	  "openapi":"","info":{"title":"","version":""},
 	  "paths":{
 		"/users/{userID}":{
@@ -98,5 +117,6 @@ func TestSpec_SetupOperation_uncleanPath(t *testing.T) {
 		  "post":{"parameters":[{"name":"userID","in":"path"}]}
 		}
 	  }
-	}`), s)
+	}`), s,
+	)
 }

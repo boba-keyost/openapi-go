@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
+	"github.com/boba-keyost/openapi-go"
 	"github.com/swaggest/refl"
 )
 
@@ -27,9 +27,11 @@ const (
 var defNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9.\-_]+`)
 
 func sanitizeDefName(rc *jsonschema.ReflectContext) {
-	jsonschema.InterceptDefName(func(_ reflect.Type, defaultDefName string) string {
-		return defNameSanitizer.ReplaceAllString(defaultDefName, "")
-	})(rc)
+	jsonschema.InterceptDefName(
+		func(_ reflect.Type, defaultDefName string) string {
+			return defNameSanitizer.ReplaceAllString(defaultDefName, "")
+		},
+	)(rc)
 }
 
 // ReflectRequestBody reflects JSON schema of request body.
@@ -68,11 +70,13 @@ func ReflectRequestBody(
 
 	hasJSONSchemaStruct := false
 
-	refl.WalkFieldsRecursively(reflect.ValueOf(input), func(v reflect.Value, _ reflect.StructField, _ []reflect.StructField) {
-		if v.Type() == reflect.TypeOf(jsonschema.Struct{}) {
-			hasJSONSchemaStruct = true
-		}
-	})
+	refl.WalkFieldsRecursively(
+		reflect.ValueOf(input), func(v reflect.Value, _ reflect.StructField, _ []reflect.StructField) {
+			if v.Type() == reflect.TypeOf(jsonschema.Struct{}) {
+				hasJSONSchemaStruct = true
+			}
+		},
+	)
 
 	// Form data can not have map or array as body.
 	if !hasTaggedFields && len(mapping) == 0 && tag != tagJSON {
@@ -89,9 +93,11 @@ func ReflectRequestBody(
 	// Checking for default options that allow tag-less JSON.
 	isProcessWithoutTags := false
 
-	_, err = r.Reflect("", func(rc *jsonschema.ReflectContext) {
-		isProcessWithoutTags = rc.ProcessWithoutTags
-	})
+	_, err = r.Reflect(
+		"", func(rc *jsonschema.ReflectContext) {
+			isProcessWithoutTags = rc.ProcessWithoutTags
+		},
+	)
 	if err != nil {
 		return nil, false, fmt.Errorf("BUG: %w", err)
 	}
@@ -108,78 +114,85 @@ func ReflectRequestBody(
 		definitionPrefix += strings.Title(tag)
 	}
 
-	reflOptions = append(reflOptions,
-		jsonschema.InterceptDefName(func(t reflect.Type, defaultDefName string) string {
-			if tag != tagJSON {
-				v := reflect.New(t).Interface()
+	reflOptions = append(
+		reflOptions,
+		jsonschema.InterceptDefName(
+			func(t reflect.Type, defaultDefName string) string {
+				if tag != tagJSON {
+					v := reflect.New(t).Interface()
 
-				if refl.HasTaggedFields(v, tag) {
-					return definitionPrefix + defaultDefName
-				}
-
-				for _, at := range additionalTags {
-					if refl.HasTaggedFields(v, at) {
+					if refl.HasTaggedFields(v, tag) {
 						return definitionPrefix + defaultDefName
 					}
-				}
-			}
 
-			return defaultDefName
-		}),
+					for _, at := range additionalTags {
+						if refl.HasTaggedFields(v, at) {
+							return definitionPrefix + defaultDefName
+						}
+					}
+				}
+
+				return defaultDefName
+			},
+		),
 		jsonschema.RootRef,
 		jsonschema.PropertyNameMapping(mapping),
 		jsonschema.PropertyNameTag(tag, additionalTags...),
 		sanitizeDefName,
-		jsonschema.InterceptNullability(func(params jsonschema.InterceptNullabilityParams) {
-			if params.NullAdded {
-				if params.Schema.ReflectType == nil {
-					return
+		jsonschema.InterceptNullability(
+			func(params jsonschema.InterceptNullabilityParams) {
+				if params.NullAdded {
+					if params.Schema.ReflectType == nil {
+						return
+					}
+
+					vv := reflect.Zero(params.Schema.ReflectType).Interface()
+
+					foundFiles := false
+					if _, ok := vv.([]multipart.File); ok {
+						foundFiles = true
+					}
+
+					if _, ok := vv.([]*multipart.FileHeader); ok {
+						foundFiles = true
+					}
+
+					if foundFiles {
+						params.Schema.RemoveType(jsonschema.Null)
+					}
+				}
+			},
+		),
+		jsonschema.InterceptSchema(
+			func(params jsonschema.InterceptSchemaParams) (stop bool, err error) {
+				vv := params.Value.Interface()
+
+				foundFile := false
+				if _, ok := vv.(*multipart.File); ok {
+					foundFile = true
 				}
 
-				vv := reflect.Zero(params.Schema.ReflectType).Interface()
-
-				foundFiles := false
-				if _, ok := vv.([]multipart.File); ok {
-					foundFiles = true
+				if _, ok := vv.(*multipart.FileHeader); ok {
+					foundFile = true
 				}
 
-				if _, ok := vv.([]*multipart.FileHeader); ok {
-					foundFiles = true
-				}
-
-				if foundFiles {
+				if foundFile {
+					params.Schema.AddType(jsonschema.String)
 					params.Schema.RemoveType(jsonschema.Null)
-				}
-			}
-		}),
-		jsonschema.InterceptSchema(func(params jsonschema.InterceptSchemaParams) (stop bool, err error) {
-			vv := params.Value.Interface()
+					params.Schema.WithFormat("binary")
 
-			foundFile := false
-			if _, ok := vv.(*multipart.File); ok {
-				foundFile = true
-			}
+					if is31 {
+						params.Schema.WithExtraPropertiesItem("contentMediaType", "application/octet-stream")
+					}
 
-			if _, ok := vv.(*multipart.FileHeader); ok {
-				foundFile = true
-			}
+					hasFileUpload = true
 
-			if foundFile {
-				params.Schema.AddType(jsonschema.String)
-				params.Schema.RemoveType(jsonschema.Null)
-				params.Schema.WithFormat("binary")
-
-				if is31 {
-					params.Schema.WithExtraPropertiesItem("contentMediaType", "application/octet-stream")
+					return true, nil
 				}
 
-				hasFileUpload = true
-
-				return true, nil
-			}
-
-			return false, nil
-		}),
+				return false, nil
+			},
+		),
 	)
 
 	sch, err := r.Reflect(input, reflOptions...)
@@ -205,7 +218,8 @@ func ReflectJSONResponse(
 		return nil, nil
 	}
 
-	reflOptions = append(reflOptions,
+	reflOptions = append(
+		reflOptions,
 		jsonschema.RootRef,
 		sanitizeDefName,
 	)
@@ -258,7 +272,8 @@ func ReflectResponseHeader(
 		return jsonschema.Schema{}, nil
 	}
 
-	return r.Reflect(output,
+	return r.Reflect(
+		output,
 		func(rc *jsonschema.ReflectContext) {
 			rc.ProcessWithoutTags = false
 		},
@@ -288,7 +303,8 @@ func ReflectParametersIn(
 		return jsonschema.Schema{}, nil
 	}
 
-	return r.Reflect(input,
+	return r.Reflect(
+		input,
 		func(rc *jsonschema.ReflectContext) {
 			rc.ProcessWithoutTags = false
 		},

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/swaggest/jsonschema-go"
-	"github.com/swaggest/openapi-go"
-	"github.com/swaggest/openapi-go/internal"
+	"github.com/boba-keyost/openapi-go"
+	"github.com/boba-keyost/openapi-go/internal"
 	"github.com/swaggest/refl"
 )
 
@@ -188,7 +188,8 @@ func (o operationContext) Operation() *Operation {
 func toOpCtx(c OperationContext) operationContext {
 	oc := internal.NewOperationContext(c.HTTPMethod, "")
 
-	oc.AddReqStructure(c.Input,
+	oc.AddReqStructure(
+		c.Input,
 		func(cu *openapi.ContentUnit) {
 			cu.SetFieldMapping(openapi.InHeader, c.ReqHeaderMapping)
 			cu.SetFieldMapping(openapi.InQuery, c.ReqQueryMapping)
@@ -198,7 +199,8 @@ func toOpCtx(c OperationContext) operationContext {
 		},
 	)
 
-	oc.AddRespStructure(c.Output,
+	oc.AddRespStructure(
+		c.Output,
 		func(cu *openapi.ContentUnit) {
 			cu.ContentType = c.RespContentType
 			cu.HTTPStatus = c.HTTPStatus
@@ -273,7 +275,16 @@ func (r *Reflector) setupRequest(o *Operation, oc openapi.OperationContext) erro
 		switch cu.ContentType {
 		case "":
 			if err := joinErrors(
-				r.parseRequestBody(o, oc, cu, mimeFormUrlencoded, oc.Method(), cu.FieldMapping(openapi.InFormData), tagFormData, tagForm),
+				r.parseRequestBody(
+					o,
+					oc,
+					cu,
+					mimeFormUrlencoded,
+					oc.Method(),
+					cu.FieldMapping(openapi.InFormData),
+					tagFormData,
+					tagForm,
+				),
 				r.parseParameters(o, oc, cu),
 				r.parseRequestBody(o, oc, cu, mimeJSON, oc.Method(), nil, tagJSON),
 			); err != nil {
@@ -290,7 +301,16 @@ func (r *Reflector) setupRequest(o *Operation, oc openapi.OperationContext) erro
 			}
 		case mimeFormUrlencoded, mimeMultipart:
 			if err := joinErrors(
-				r.parseRequestBody(o, oc, cu, mimeFormUrlencoded, oc.Method(), cu.FieldMapping(openapi.InFormData), tagFormData, tagForm),
+				r.parseRequestBody(
+					o,
+					oc,
+					cu,
+					mimeFormUrlencoded,
+					oc.Method(),
+					cu.FieldMapping(openapi.InFormData),
+					tagFormData,
+					tagForm,
+				),
 				r.parseParameters(o, oc, cu),
 			); err != nil {
 				return err
@@ -354,9 +374,11 @@ func (r *Reflector) parseRawRequestBody(o *Operation, cu openapi.ContentUnit) {
 		return
 	}
 
-	refl.WalkTaggedFields(reflect.ValueOf(cu.Structure), func(_ reflect.Value, _ reflect.StructField, tag string) {
-		r.stringRequestBody(o, tag, "")
-	}, tagContentType)
+	refl.WalkTaggedFields(
+		reflect.ValueOf(cu.Structure), func(_ reflect.Value, _ reflect.StructField, tag string) {
+			r.stringRequestBody(o, tag, "")
+		}, tagContentType,
+	)
 }
 
 func (r *Reflector) parseRequestBody(
@@ -416,7 +438,8 @@ const (
 )
 
 func (r *Reflector) parseParameters(o *Operation, oc openapi.OperationContext, cu openapi.ContentUnit) error {
-	return joinErrors(r.parseParametersIn(o, oc, cu, openapi.InQuery, tagForm),
+	return joinErrors(
+		r.parseParametersIn(o, oc, cu, openapi.InQuery, tagForm),
 		r.parseParametersIn(o, oc, cu, openapi.InPath),
 		r.parseParametersIn(o, oc, cu, openapi.InCookie),
 		r.parseParametersIn(o, oc, cu, openapi.InHeader),
@@ -483,7 +506,8 @@ func (r *Reflector) parseParametersIn(
 
 			if collectionFormat == "json" ||
 				(refl.HasTaggedFields(property, tagJSON) && !refl.HasTaggedFields(property, string(in))) {
-				propertySchema, err := r.Reflect(property,
+				propertySchema, err := r.Reflect(
+					property,
 					openapi.WithOperationCtx(oc, false, in),
 					jsonschema.DefinitionsPrefix(componentsSchemas),
 					jsonschema.CollectDefinitions(r.collectDefinition()),
@@ -500,7 +524,8 @@ func (r *Reflector) parseParametersIn(
 				p.Schema = nil
 				p.WithContentItem("application/json", MediaType{Schema: &openapiSchema})
 			} else {
-				ps, err := r.Reflect(reflect.New(field.Type).Interface(),
+				ps, err := r.Reflect(
+					reflect.New(field.Type).Interface(),
 					openapi.WithOperationCtx(oc, false, in),
 					jsonschema.InlineRefs,
 					sanitizeDefName,
@@ -540,7 +565,8 @@ func (r *Reflector) parseParametersIn(
 			o.Parameters = append(o.Parameters, ParameterOrRef{Parameter: &p})
 
 			return nil
-		}, additionalTags...)
+		}, additionalTags...,
+	)
 	if err != nil {
 		return err
 	}
@@ -557,9 +583,11 @@ func (r *Reflector) parseParametersIn(
 var defNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9.\-_]+`)
 
 func sanitizeDefName(rc *jsonschema.ReflectContext) {
-	jsonschema.InterceptDefName(func(_ reflect.Type, defaultDefName string) string {
-		return defNameSanitizer.ReplaceAllString(defaultDefName, "")
-	})(rc)
+	jsonschema.InterceptDefName(
+		func(_ reflect.Type, defaultDefName string) string {
+			return defNameSanitizer.ReplaceAllString(defaultDefName, "")
+		},
+	)(rc)
 }
 
 func (r *Reflector) collectDefinition() func(name string, schema jsonschema.Schema) {
@@ -582,7 +610,8 @@ func (r *Reflector) parseResponseHeader(resp *Response, oc openapi.OperationCont
 
 	res := make(map[string]HeaderOrRef)
 
-	schema, err := internal.ReflectResponseHeader(r.JSONSchemaReflector(), oc, cu,
+	schema, err := internal.ReflectResponseHeader(
+		r.JSONSchemaReflector(), oc, cu,
 		func(params jsonschema.InterceptPropParams) error {
 			if !params.Processed || len(params.Path) > 1 { // only top-level fields (including embedded).
 				return nil
@@ -635,9 +664,11 @@ func (r *Reflector) parseRawResponseBody(resp *Response, cu openapi.ContentUnit)
 		return
 	}
 
-	refl.WalkTaggedFields(reflect.ValueOf(cu.Structure), func(_ reflect.Value, _ reflect.StructField, tag string) {
-		r.ensureResponseContentType(resp, tag, "")
-	}, tagContentType)
+	refl.WalkTaggedFields(
+		reflect.ValueOf(cu.Structure), func(_ reflect.Value, _ reflect.StructField, tag string) {
+			r.ensureResponseContentType(resp, tag, "")
+		}, tagContentType,
+	)
 }
 
 func (r *Reflector) setupResponse(o *Operation, oc openapi.OperationContext) error {
