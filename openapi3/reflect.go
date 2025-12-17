@@ -18,6 +18,7 @@ import (
 // Reflector builds OpenAPI Schema with reflected structures.
 type Reflector struct {
 	jsonschema.Reflector
+
 	Spec *Spec
 }
 
@@ -25,6 +26,22 @@ type Reflector struct {
 func NewReflector() *Reflector {
 	r := &Reflector{}
 	r.SpecEns()
+
+	r.DefaultOptions = append(r.DefaultOptions, jsonschema.InterceptSchema(func(params jsonschema.InterceptSchemaParams) (stop bool, err error) {
+		// See https://spec.openapis.org/oas/v3.0.0.html#data-types.
+		switch params.Value.Kind() { //nolint // Not all kinds have formats defined.
+		case reflect.Int64:
+			params.Schema.WithFormat("int64")
+		case reflect.Int32:
+			params.Schema.WithFormat("int32")
+		case reflect.Float32:
+			params.Schema.WithFormat("float")
+		case reflect.Float64:
+			params.Schema.WithFormat("double")
+		}
+
+		return false, nil
+	}))
 
 	return r
 }
